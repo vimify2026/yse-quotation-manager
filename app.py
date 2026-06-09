@@ -150,9 +150,7 @@ def init_db():
 
 @app.before_request
 def ensure_db():
-    if not getattr(app,'_db_ready',False):
-        try: init_db(); app._db_ready=True
-        except Exception as e: print(f"DB init: {e}"); app._db_ready=True
+    app._db_ready=True
 
 def append_to_sheet(quot_no,date_str,cname,cphone,cloc,grand_total,emp_name):
     try:
