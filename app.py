@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, jsonify, session, send_file
 import os, hashlib, pg8000.dbapi, ssl, io, json
+from urllib.parse import urlparse, unquote
 from datetime import datetime, timedelta
 
 app = Flask(__name__)
@@ -53,15 +54,21 @@ BANK_DETAILS = {
 def hash_password(p): return hashlib.sha256((p+'yse2026salt').encode()).hexdigest()
 def verify_password(p,h): return hash_password(p)==h
 
+_db_pool = None
+
 def get_db():
-    from urllib.parse import urlparse, unquote
-    db_url=os.environ.get('DATABASE_URL','')
-    if db_url.startswith('postgres://'): db_url=db_url.replace('postgres://','postgresql://',1)
-    p=urlparse(db_url)
-    ssl_ctx=ssl.create_default_context(); ssl_ctx.check_hostname=False; ssl_ctx.verify_mode=ssl.CERT_NONE
-    return pg8000.dbapi.connect(user=unquote(p.username),password=unquote(p.password),
-    host=p.hostname,port=p.port or 5432,database=p.path.lstrip('/'),ssl_context=ssl_ctx,
-    timeout=10)
+    global _db_pool
+    if _db_pool is None or _db_pool.in_transaction:
+        db_url=os.environ.get('DATABASE_URL','')
+        if db_url.startswith('postgres://'): db_url=db_url.replace('postgres://','postgresql://',1)
+        p=urlparse(db_url)
+        ssl_ctx=ssl.create_default_context(); ssl_ctx.check_hostname=False; ssl_ctx.verify_mode=ssl.CERT_NONE
+        try:
+            _db_pool=pg8000.dbapi.connect(user=unquote(p.username),password=unquote(p.password),
+                host=p.hostname,port=p.port or 5432,database=p.path.lstrip('/'),ssl_context=ssl_ctx,
+                timeout=10)
+        except: _db_pool=None; raise
+    return _db_pool
 
 def query(sql,params=None):
     con=get_db()
