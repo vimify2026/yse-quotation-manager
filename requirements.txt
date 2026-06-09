@@ -1,0 +1,8 @@
+flask
+gunicorn
+pg8000
+reportlab
+Pillow
+gspread
+google-auth
+openpyxl
