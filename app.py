@@ -58,16 +58,17 @@ _db_pool = None
 
 def get_db():
     global _db_pool
-    if _db_pool is None or _db_pool.in_transaction:
-        db_url=os.environ.get('DATABASE_URL','')
-        if db_url.startswith('postgres://'): db_url=db_url.replace('postgres://','postgresql://',1)
-        p=urlparse(db_url)
-        ssl_ctx=ssl.create_default_context(); ssl_ctx.check_hostname=False; ssl_ctx.verify_mode=ssl.CERT_NONE
-        try:
-            _db_pool=pg8000.dbapi.connect(user=unquote(p.username),password=unquote(p.password),
-                host=p.hostname,port=p.port or 5432,database=p.path.lstrip('/'),ssl_context=ssl_ctx,
-                timeout=10)
-        except: _db_pool=None; raise
+    try:
+        if _db_pool is not None:
+            _db_pool.run("SELECT 1")
+            return _db_pool
+    except: _db_pool = None
+    db_url=os.environ.get('DATABASE_URL','')
+    if db_url.startswith('postgres://'): db_url=db_url.replace('postgres://','postgresql://',1)
+    p=urlparse(db_url)
+    ssl_ctx=ssl.create_default_context(); ssl_ctx.check_hostname=False; ssl_ctx.verify_mode=ssl.CERT_NONE
+    _db_pool=pg8000.dbapi.connect(user=unquote(p.username),password=unquote(p.password),
+        host=p.hostname,port=p.port or 5432,database=p.path.lstrip('/'),ssl_context=ssl_ctx)
     return _db_pool
 
 def query(sql,params=None):
