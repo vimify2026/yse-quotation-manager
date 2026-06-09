@@ -60,7 +60,8 @@ def get_db():
     p=urlparse(db_url)
     ssl_ctx=ssl.create_default_context(); ssl_ctx.check_hostname=False; ssl_ctx.verify_mode=ssl.CERT_NONE
     return pg8000.dbapi.connect(user=unquote(p.username),password=unquote(p.password),
-        host=p.hostname,port=p.port or 5432,database=p.path.lstrip('/'),ssl_context=ssl_ctx)
+    host=p.hostname,port=p.port or 5432,database=p.path.lstrip('/'),ssl_context=ssl_ctx,
+    timeout=10)
 
 def query(sql,params=None):
     con=get_db()
